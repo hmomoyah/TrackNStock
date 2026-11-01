@@ -1,3 +1,4 @@
+
 (function () {
   const isLoginPage = window.location.pathname.split(/[\\/]/).pop() === "login.html";
   const currentUser = sessionStorage.getItem("schoolstock-user");
@@ -527,8 +528,7 @@
       resetButton.disabled = true;
       resetButton.textContent = "Resetting...";
 
-      const apiUrl =
-        "https://super-duper-telegram-r7gp5j96w7vr2xxjg-8080.app.github.dev/api";
+      const apiUrl = "https://tracknstock-3fk4.onrender.com/api";
 
       try {
         const response = await fetch(`${apiUrl}/demo/reset`, {

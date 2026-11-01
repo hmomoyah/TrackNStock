@@ -3,7 +3,7 @@
 
   const state = window.SchoolStock.get();
   const ui = window.SS;
-  const API_URL = "https://super-duper-telegram-r7gp5j96w7vr2xxjg-8080.app.github.dev/api/products";
+  const API_URL = "https://tracknstock-3fk4.onrender.com/api/products";
 
   let products = [];
 

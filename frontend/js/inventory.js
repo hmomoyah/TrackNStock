@@ -4,7 +4,7 @@
   const state = window.SchoolStock.get();
   const ui = window.SS;
 
-  const API_URL = "https://super-duper-telegram-r7gp5j96w7vr2xxjg-8080.app.github.dev/api";
+  const API_URL = "https://tracknstock-3fk4.onrender.com/api";
 
   const form = document.getElementById("stock-in-form") ||
                document.getElementById("stock-out-form");
@@ -85,7 +85,9 @@
          </tr>`;
   }
 
-  form.elements.date.value = new Date().toISOString().slice(0, 10);
+  if (form.elements.date) {
+    form.elements.date.value = new Date().toISOString().slice(0, 10);
+  }
 
   loadSuppliers();
 
@@ -156,7 +158,10 @@
       await Promise.all([loadProducts(), loadHistory()]);
 
       form.reset();
-      form.elements.date.value = new Date().toISOString().slice(0, 10);
+
+      if (form.elements.date) {
+        form.elements.date.value = new Date().toISOString().slice(0, 10);
+      }
 
       ui.toast(
         `Stock ${stockIn ? "in" : "out"} recorded successfully!`
