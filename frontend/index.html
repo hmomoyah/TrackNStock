@@ -3,13 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="0; url=login.html">
-    <title>TrackNStock</title>
+    <title>TrackNStock | School Supply Inventory</title>
+
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/components.css">
+
+    <style>
+        .home-card {
+            width: min(480px, 100%);
+            margin: auto;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .home-card .brand {
+            justify-content: center;
+            margin-bottom: 35px;
+        }
+
+        .home-card h1 {
+            margin-bottom: 12px;
+        }
+
+        .home-actions {
+            display: grid;
+            gap: 12px;
+            margin-top: 28px;
+        }
+
+        .home-actions .button {
+            width: 100%;
+            padding: 13px;
+        }
+
+        .home-footer {
+            margin-top: 30px;
+            color: var(--muted);
+            font-size: 11px;
+        }
+    </style>
 </head>
-<body>
-    <p>Redirecting to TrackNStock login...</p>
-    <script>
-        window.location.replace("login.html");
-    </script>
+
+<body class="login-page">
+
+    <main class="login-card home-card">
+
+        <a class="brand" href="index.html">
+            <span class="brand-mark">T</span>
+            <span>
+                TrackNStock
+                <small>SUPPLY INVENTORY</small>
+            </span>
+        </a>
+
+        <p class="eyebrow">WELCOME TO TRACKNSTOCK</p>
+
+        <h1>School Supply Inventory Management</h1>
+
+        <p class="muted">
+            Manage your school supplies, monitor inventory,
+            and keep track of stock movements in one place.
+        </p>
+
+        <div class="home-actions">
+            <a href="login.html" class="button primary">
+                Log In →
+            </a>
+
+            <a href="signup.html" class="button secondary">
+                Sign Up
+            </a>
+        </div>
+
+        <p class="home-footer">
+            © 2026 TrackNStock · School Supply Inventory
+        </p>
+
+    </main>
+
 </body>
 </html>

@@ -1,4 +1,3 @@
-
 (function () {
   const isLoginPage = window.location.pathname.split(/[\\/]/).pop() === "login.html";
   const currentUser = sessionStorage.getItem("schoolstock-user");
