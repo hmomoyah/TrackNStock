@@ -3,7 +3,6 @@
 
   const state = window.SchoolStock.get();
   const ui = window.SS;
-  const API_URL = "https://tracknstock-3fk4.onrender.com/api";
 
   const form = document.getElementById("stock-in-form") ||
                document.getElementById("stock-out-form");
@@ -15,41 +14,15 @@
   const history = document.getElementById("stock-history");
 
   let products = [];
-  let usingOffline = false;
 
-  function useOfflineProducts() {
+  function loadProducts() {
     products = state.products.map(item => ({
       ...item,
+      stock: Number(item.stock) || 0,
       unit: item.unit || "piece"
     }));
-    usingOffline = true;
-  }
 
-  async function loadProducts() {
-    try {
-      const response = await fetch(`${API_URL}/products`);
-
-      if (!response.ok) throw new Error("Unable to load products.");
-
-      products = await response.json();
-      usingOffline = false;
-    } catch (error) {
-      console.error(error);
-      useOfflineProducts();
-      ui.toast("Using offline demo inventory.", true);
-    }
-
-    select.innerHTML =
-      `<option value="">Select product</option>` +
-      products
-        .slice()
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .map(item =>
-          `<option value="${item.id}">
-            ${ui.escape(item.name)} · ${item.stock} available
-          </option>`
-        )
-        .join("");
+    refreshProductOptions();
   }
 
   function loadSuppliers() {
@@ -57,32 +30,13 @@
       form.elements.supplierId.innerHTML =
         `<option value="">Select supplier</option>` +
         state.suppliers.map(item =>
-          `<option value="${item.id}">
-            ${ui.escape(item.name)}
-          </option>`
+          `<option value="${item.id}">${ui.escape(item.name)}</option>`
         ).join("");
     }
   }
 
-  async function loadHistory() {
-    if (usingOffline) {
-      drawHistory(state.history);
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_URL}/stock-transactions`);
-
-      if (!response.ok) throw new Error("Unable to load stock history.");
-
-      const records = await response.json();
-      drawHistory(records);
-    } catch (error) {
-      console.error(error);
-      usingOffline = true;
-      drawHistory(state.history);
-      ui.toast("Using offline stock history.", true);
-    }
+  function loadHistory() {
+    drawHistory(state.history || []);
   }
 
   function drawHistory(records) {
@@ -127,15 +81,16 @@
         .join("");
   }
 
-  function saveOfflineTransaction(product, quantity, data) {
+  function saveTransaction(product, quantity, data) {
     const localProduct = state.products.find(
       item => Number(item.id) === Number(product.id)
     );
 
     if (!localProduct) {
-      throw new Error("Product is not available in offline demo data.");
+      throw new Error("Product is not available in demo data.");
     }
 
+    localProduct.stock = Number(localProduct.stock) || 0;
     localProduct.stock += stockIn ? quantity : -quantity;
 
     const transaction = {
@@ -147,15 +102,15 @@
       date: data.date
         ? new Date(`${data.date}T00:00:00`).toISOString()
         : new Date().toISOString(),
-      reason: data.notes || data.reason || ""
+      reason: data.notes || ""
     };
 
     state.history.unshift(transaction);
+
     window.SchoolStock.save();
 
-    useOfflineProducts();
-    refreshProductOptions();
-    drawHistory(state.history);
+    loadProducts();
+    loadHistory();
   }
 
   if (form.elements.date) {
@@ -163,15 +118,10 @@
   }
 
   loadSuppliers();
+  loadProducts();
+  loadHistory();
 
-  async function initialize() {
-    await loadProducts();
-    await loadHistory();
-  }
-
-  initialize();
-
-  form.addEventListener("submit", async event => {
+  form.addEventListener("submit", event => {
     event.preventDefault();
 
     const values = new FormData(form);
@@ -206,51 +156,12 @@
     ].filter(Boolean).join(" | ");
 
     const data = {
-      productId,
-      quantity,
       date: values.get("date"),
-      notes: remarks,
-      reason: remarks
+      notes: remarks
     };
 
-    if (usingOffline) {
-      try {
-        saveOfflineTransaction(product, quantity, data);
-        form.reset();
-
-        if (form.elements.date) {
-          form.elements.date.value = new Date().toISOString().slice(0, 10);
-        }
-
-        ui.toast(`Offline stock ${stockIn ? "in" : "out"} recorded successfully!`);
-      } catch (error) {
-        console.error(error);
-        ui.toast(error.message || "Unable to save offline transaction.", true);
-      }
-
-      return;
-    }
-
     try {
-      const response = await fetch(
-        `${API_URL}/${stockIn ? "stock-in" : "stock-out"}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(data)
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || "Stock transaction failed.");
-      }
-
-      await loadProducts();
-      await loadHistory();
+      saveTransaction(product, quantity, data);
 
       form.reset();
 
@@ -258,10 +169,12 @@
         form.elements.date.value = new Date().toISOString().slice(0, 10);
       }
 
-      ui.toast(`Stock ${stockIn ? "in" : "out"} recorded successfully!`);
+      ui.toast(
+        `Demo stock ${stockIn ? "in" : "out"} recorded successfully!`
+      );
     } catch (error) {
       console.error(error);
-      ui.toast(error.message || "Unable to record stock movement.", true);
+      ui.toast(error.message || "Unable to save stock movement.", true);
     }
   });
 })();

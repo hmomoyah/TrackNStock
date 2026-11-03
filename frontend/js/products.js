@@ -3,46 +3,23 @@
 
   const state = window.SchoolStock.get();
   const ui = window.SS;
-  const API_URL = "https://tracknstock-3fk4.onrender.com/api/products";
 
-  let products = [];
-  let usingOffline = false;
+  let products = state.products;
 
-  function useOfflineProducts() {
-    products = state.products.map(item => ({
-      ...item,
-      unit: item.unit || "piece"
-    }));
-
-    usingOffline = true;
-    ui.toast("Database unavailable. Using offline demo data.", true);
-    return true;
+  function loadProducts() {
+    products = state.products;
+    return products;
   }
 
-  async function loadProducts() {
-    try {
-      const response = await fetch(API_URL);
-
-      if (!response.ok) {
-        return useOfflineProducts();
-      }
-
-      products = await response.json();
-      usingOffline = false;
-      return true;
-    } catch (error) {
-      console.error("Unable to connect to the database:", error);
-      return useOfflineProducts();
-    }
-  }
-
-  function saveOfflineProduct(record, productId = null) {
+  function saveProduct(record, productId = null) {
     if (productId) {
       const index = state.products.findIndex(
         item => Number(item.id) === Number(productId)
       );
 
-      if (index === -1) return false;
+      if (index === -1) {
+        throw new Error("Product not found.");
+      }
 
       state.products[index] = {
         ...state.products[index],
@@ -50,23 +27,15 @@
         id: Number(productId)
       };
     } else {
-      const newProduct = {
+      state.products.push({
         ...record,
         id: window.SchoolStock.nextId("products"),
         unit: "piece"
-      };
-
-      state.products.push(newProduct);
+      });
     }
 
     window.SchoolStock.save();
-    products = state.products.map(item => ({
-      ...item,
-      unit: item.unit || "piece"
-    }));
-
-    usingOffline = true;
-    return true;
+    loadProducts();
   }
 
   const table = document.getElementById("products-table");
@@ -121,86 +90,47 @@
     search.addEventListener("input", draw);
     categoryFilter.addEventListener("change", draw);
 
-    table.addEventListener("click", async event => {
+    table.addEventListener("click", event => {
       const button = event.target.closest("[data-delete]");
       if (!button) return;
 
       const product = products.find(
-        item => item.id === Number(button.dataset.delete)
+        item => Number(item.id) === Number(button.dataset.delete)
       );
 
       if (!product) return;
 
       if (confirm(`Delete "${product.name}" from the inventory?`)) {
-        if (usingOffline) {
+        try {
           state.products = state.products.filter(
             item => Number(item.id) !== Number(product.id)
           );
 
-          try {
-            window.SchoolStock.save();
-            products = state.products.map(item => ({
-              ...item,
-              unit: item.unit || "piece"
-            }));
-            draw();
-            ui.toast("Product deleted from offline demo data.");
-          } catch (error) {
-            console.error(error);
-            ui.toast(error.message || "Unable to delete product.", true);
-          }
-
-          return;
-        }
-
-        try {
-          const response = await fetch(`${API_URL}/${product.id}`, {
-            method: "DELETE"
-          });
-
-          if (!response.ok) {
-            if (response.status >= 500) {
-              useOfflineProducts();
-              state.products = state.products.filter(
-                item => Number(item.id) !== Number(product.id)
-              );
-              window.SchoolStock.save();
-              products = state.products.map(item => ({
-                ...item,
-                unit: item.unit || "piece"
-              }));
-              draw();
-              ui.toast("Product deleted from offline demo data.");
-              return;
-            }
-
-            throw new Error("Unable to delete product.");
-          }
-
-          await loadProducts();
+          window.SchoolStock.save();
+          loadProducts();
           draw();
-          ui.toast("Product deleted.");
+
+          ui.toast("Product deleted from demo inventory.");
         } catch (error) {
           console.error(error);
-          ui.toast("Unable to delete product.", true);
+          ui.toast(error.message || "Unable to delete product.", true);
         }
       }
     });
 
-    loadProducts().then(success => {
-      if (success) draw();
-    });
+    loadProducts();
+    draw();
   }
 
   const form = document.getElementById("product-form");
 
   if (form) {
-    async function setupForm() {
-      await loadProducts();
+    function setupForm() {
+      loadProducts();
 
       const id = new URLSearchParams(location.search).get("id");
       const product = id
-        ? products.find(item => item.id === Number(id))
+        ? products.find(item => Number(item.id) === Number(id))
         : null;
 
       if (id && !product) {
@@ -237,7 +167,7 @@
         form.elements.description.value = product.description || "";
       }
 
-      form.addEventListener("submit", async event => {
+      form.addEventListener("submit", event => {
         event.preventDefault();
 
         const data = new FormData(form);
@@ -273,51 +203,19 @@
           description: data.get("description").trim()
         };
 
-        if (usingOffline) {
-          try {
-            saveOfflineProduct(record, product ? product.id : null);
-            ui.toast(
-              product
-                ? "Product updated in offline demo data."
-                : "Product added to offline demo data."
-            );
-            location.href = "products.html";
-          } catch (error) {
-            console.error(error);
-            ui.toast(error.message || "Unable to save product.", true);
-          }
-
-          return;
-        }
-
         try {
-          const response = await fetch(
-            product ? `${API_URL}/${product.id}` : API_URL,
-            {
-              method: product ? "PUT" : "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify(record)
-            }
+          saveProduct(record, product ? product.id : null);
+
+          ui.toast(
+            product
+              ? "Product updated successfully."
+              : "Product added successfully."
           );
 
-          if (!response.ok) {
-            if (response.status >= 500) {
-              saveOfflineProduct(record, product ? product.id : null);
-              ui.toast("Saved in offline demo data.");
-              location.href = "products.html";
-              return;
-            }
-
-            throw new Error("Unable to save product.");
-          }
-
-          ui.toast(product ? "Product updated." : "Product added.");
           location.href = "products.html";
         } catch (error) {
           console.error(error);
-          ui.toast("Unable to save product.", true);
+          ui.toast(error.message || "Unable to save product.", true);
         }
       });
     }
@@ -331,8 +229,8 @@
     const searchField = document.getElementById("low-stock-search");
     const filter = document.getElementById("low-stock-filter");
 
-    async function setupLowStock() {
-      await loadProducts();
+    function setupLowStock() {
+      loadProducts();
 
       const alerts = products.filter(
         item => item.stock <= item.minStock

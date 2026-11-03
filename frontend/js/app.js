@@ -517,9 +517,9 @@
     const resetButton = document.getElementById("reset-demo");
     if (!resetButton) return;
 
-    resetButton.addEventListener("click", async () => {
+        resetButton.addEventListener("click", () => {
       const confirmed = confirm(
-        "Reset demo data to the original sample quantities? This will clear stock transaction history and demo sales. This cannot be undone."
+        "Reset demo data to the original sample values? This will clear your saved demo changes. This cannot be undone."
       );
 
       if (!confirmed) return;
@@ -527,56 +527,15 @@
       resetButton.disabled = true;
       resetButton.textContent = "Resetting...";
 
-      const apiUrl = "https://tracknstock-3fk4.onrender.com/api";
-
       try {
-        const response = await fetch(`${apiUrl}/demo/reset`, {
-          method: "POST"
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            result.message || "Failed to reset demo data."
-          );
-        }
-
-        const productsResponse = await fetch(`${apiUrl}/products`);
-
-        if (!productsResponse.ok) {
-          throw new Error("Could not refresh product data.");
-        }
-
-        const products = await productsResponse.json();
-
-        state.products.forEach(product => {
-          const updatedProduct = products.find(
-            item => Number(item.id) === Number(product.id)
-          );
-
-          if (updatedProduct) {
-            product.stock = Number(updatedProduct.stock);
-          }
-        });
-
-        state.sales = [];
-        state.history = [];
-
-        window.SchoolStock.save();
+        window.SchoolStock.reset();
         sessionStorage.removeItem("schoolstock-last-sale");
 
         alert("Demo data has been reset successfully!");
         location.reload();
-
       } catch (error) {
         console.error("Reset error:", error);
-
-        alert(
-          error.message ||
-          "Could not reset demo data. Please try again."
-        );
-
+        alert(error.message || "Could not reset demo data. Please try again.");
         resetButton.disabled = false;
         resetButton.textContent = "Reset demo data";
       }
